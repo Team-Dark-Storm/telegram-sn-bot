@@ -8,7 +8,7 @@ cur = db.cursor()
 cur.execute("CREATE TABLE IF NOT EXISTS sn (value TEXT UNIQUE)")
 db.commit()
 
-BOT_TOKEN = os.environ.get("8515898760:AAGRz4Sf00qZM0E74Agd1vUEfMUYKirt0zo")  # هنتعامل مع التوكن كـ Environment Variable
+BOT_TOKEN = "8515898760:AAGRz4Sf00qZM0E74Agd1vUEfMUYKirt0zo"
 
 async def save_sn(update, context):
     sn = update.message.text.strip()
