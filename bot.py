@@ -10,7 +10,7 @@ cur.execute("CREATE TABLE IF NOT EXISTS sn (value TEXT UNIQUE)")
 db.commit()
 
 # قراءة التوكن من Environment Variable
-BOT_TOKEN = os.environ.get("BOT_TOKEN")
+BOT_TOKEN = "8515898760:AAGRz4Sf00qZM0E74Agd1vUEfMUYKirt0zo"
 
 # دالة للتحقق من صحة SN
 def is_valid_sn(sn):
