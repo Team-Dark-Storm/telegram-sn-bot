@@ -9,7 +9,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 # =========================
 # إعدادات
 # =========================
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+BOT_TOKEN = "8515898760:AAGRz4Sf00qZM0E74Agd1vUEfMUYKirt0zo"
 ADMIN_ID = int(os.getenv("ADMIN_ID", "0"))
 DATA_FILE = "sns.json"
 
