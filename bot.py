@@ -1,17 +1,16 @@
 import json
 import os
 import re
+import threading
 from flask import Flask, request
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
 # =========================
 # إعدادات
 # =========================
 BOT_TOKEN = "8515898760:AAGRz4Sf00qZM0E74Agd1vUEfMUYKirt0zo"
 DATA_FILE = "sns.json"
-WEBHOOK_PATH = f"/{BOT_TOKEN}"
-WEBHOOK_URL = f"https://worker-production-dcbb.up.railway.app{WEBHOOK_PATH}"
 
 SN_REGEX = re.compile(r"^[A-Z0-9]{8,12}$")
 
@@ -97,34 +96,17 @@ async def listsn(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(msg)
 
 # =========================
-# Webhook Handler
+# تشغيل البوت + Flask
 # =========================
-async def webhook_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await context.bot.process_update(update)
-
-# =========================
-# تشغيل البوت + Webhook
-# =========================
-def setup_bot():
+def run_bot():
     bot_app = ApplicationBuilder().token(BOT_TOKEN).build()
     bot_app.add_handler(CommandHandler("start", start))
     bot_app.add_handler(CommandHandler("addsn", addsn))
     bot_app.add_handler(CommandHandler("delsn", delsn))
     bot_app.add_handler(CommandHandler("listsn", listsn))
-    return bot_app
-
-bot_app = setup_bot()
-
-@app.route(WEBHOOK_PATH, methods=["POST"])
-def webhook():
-    data = request.get_json(force=True)
-    update = Update.de_json(data, bot_app.bot)
-    bot_app.create_task(bot_app.update_queue.put(update))
-    return "OK"
+    bot_app.run_polling()
 
 if __name__ == "__main__":
-    # ضبط Webhook على Telegram
-    import asyncio
-    asyncio.run(bot_app.bot.set_webhook(WEBHOOK_URL))
-    # تشغيل Flask
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+    port = int(os.environ.get("PORT", 8080))
+    threading.Thread(target=lambda: app.run(host="0.0.0.0", port=port)).start()
+    run_bot()
