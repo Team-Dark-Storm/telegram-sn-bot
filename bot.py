@@ -1,16 +1,17 @@
 import json
 import os
 import re
-import threading
 from flask import Flask, request
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, MessageHandler, filters
 
 # =========================
 # إعدادات
 # =========================
 BOT_TOKEN = "8515898760:AAGRz4Sf00qZM0E74Agd1vUEfMUYKirt0zo"
 DATA_FILE = "sns.json"
+WEBHOOK_PATH = f"/{BOT_TOKEN}"
+WEBHOOK_URL = f"https://worker-production-dcbb.up.railway.app{WEBHOOK_PATH}"
 
 SN_REGEX = re.compile(r"^[A-Z0-9]{8,12}$")
 
@@ -40,25 +41,16 @@ def check_sn():
     sns = load_sns()
     return "OK" if sn in sns else "NO"
 
-def run_flask():
-    app.run(host="0.0.0.0", port=8080)
-
 # =========================
-# Telegram Bot
+# أوامر البوت
 # =========================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "✅ SN Activation Bot Ready\n\n"
-        "➕ Add SN:\n"
-        "/addsn XXXXXXXX\n"
-        "➖ Delete SN:\n"
-        "/delsn XXXXXXXX\n"
-        "📋 List all SNs:\n"
-        "/listsn\n\n"
-        "⚠️ SN must be:\n"
-        "- 8 to 12 chars\n"
-        "- A-Z / 0-9\n"
-        "- CAPITAL only"
+        "➕ Add SN: /addsn XXXXXXXX\n"
+        "➖ Delete SN: /delsn XXXXXXXX\n"
+        "📜 List SN: /listsn\n"
+        "⚠️ SN must be 8-12 chars, A-Z / 0-9, CAPITAL only"
     )
 
 async def addsn(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -67,7 +59,6 @@ async def addsn(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     sn = context.args[0].upper()
-
     if not SN_REGEX.fullmatch(sn):
         await update.message.reply_text("❌ SN غير صالح")
         return
@@ -89,36 +80,51 @@ async def delsn(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sn = context.args[0].upper()
     sns = load_sns()
     if sn not in sns:
-        await update.message.reply_text("⚠️ SN مش موجود")
+        await update.message.reply_text("⚠️ SN غير موجود")
         return
 
     sns.remove(sn)
     save_sns(sns)
-    await update.message.reply_text(f"✅ SN اتحذف بنجاح:\n{sn}")
+    await update.message.reply_text(f"✅ SN تم حذفه:\n{sn}")
 
 async def listsn(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sns = load_sns()
     if not sns:
-        await update.message.reply_text("⚠️ مفيش أي SN مسجلة")
+        await update.message.reply_text("⚠️ لا توجد SN مسجلة")
         return
 
-    message = "📋 قائمة SNs:\n" + "\n".join(sns)
-    await update.message.reply_text(message)
+    msg = "📜 قائمة SNs:\n" + "\n".join(sns)
+    await update.message.reply_text(msg)
 
 # =========================
-# تشغيل البوت
+# Webhook Handler
 # =========================
-def run_bot():
+async def webhook_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await context.bot.process_update(update)
+
+# =========================
+# تشغيل البوت + Webhook
+# =========================
+def setup_bot():
     bot_app = ApplicationBuilder().token(BOT_TOKEN).build()
     bot_app.add_handler(CommandHandler("start", start))
     bot_app.add_handler(CommandHandler("addsn", addsn))
     bot_app.add_handler(CommandHandler("delsn", delsn))
     bot_app.add_handler(CommandHandler("listsn", listsn))
-    bot_app.run_polling()
+    return bot_app
 
-# =========================
-# تشغيل Flask + Telegram
-# =========================
+bot_app = setup_bot()
+
+@app.route(WEBHOOK_PATH, methods=["POST"])
+def webhook():
+    data = request.get_json(force=True)
+    update = Update.de_json(data, bot_app.bot)
+    bot_app.create_task(bot_app.update_queue.put(update))
+    return "OK"
+
 if __name__ == "__main__":
-    threading.Thread(target=run_flask).start()
-    run_bot()
+    # ضبط Webhook على Telegram
+    import asyncio
+    asyncio.run(bot_app.bot.set_webhook(WEBHOOK_URL))
+    # تشغيل Flask
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
