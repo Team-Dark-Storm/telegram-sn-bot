@@ -11,7 +11,7 @@ TOOL_ENABLED = False        # False = يقفل البرنامج
 # =========================
 @app.route("/tool_status")
 def tool_status():
-    return "ENABLED" if TOOL_ENABLED else "DISABLED"
+    return "ENABLED" if TOOL_ENABLED else "False"
 
 
 
@@ -21,6 +21,7 @@ def tool_status():
 # =========================
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
+
 
 
 
