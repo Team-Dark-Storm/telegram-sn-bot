@@ -9,7 +9,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 # =========================
 # إعدادات
 # =========================
-BOT_TOKEN = "8515898760:AAGRz4Sf00qZM0E74Agd1vUEfMUYKirt0zo"
+BOT_TOKEN = "8447958863:AAG4hribq6BFz5Dka4JZX236EDLEtIgGxPQ"
 DATA_FILE = "sns.json"
 
 SN_REGEX = re.compile(r"^[A-Z0-9]{8,12}$")
@@ -110,3 +110,4 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     threading.Thread(target=lambda: app.run(host="0.0.0.0", port=port)).start()
     run_bot()
+
